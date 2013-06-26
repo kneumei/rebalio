@@ -1,0 +1,26 @@
+<div id = "ModelPortfolioDiv" ng-controller="ModelPortfolioCtrl">
+<table >
+	<tr>
+		<td>Ticker</td>
+		<td colspan="2">Weight</td>
+	</tr>
+	<tr ng-repeat="security in modelPortfolio">
+		<td>{{security.ticker}}</td>
+		<td>{{security.weight}}</td>
+        <td><button ng-click="deleteSecurity($index)">Delete</button></td>
+	</tr>
+    <tr>
+        <td>Total Weight:</td>
+        <td>{{totalWeight()}}</td>
+        <td></td>
+    </tr>
+	<form ng-submit="addSecurity()"/>
+	<tr>
+		<td><input id = "txtTicker" type="text" ng-model="ticker"  size="8" placeholder="ticker" required autocomplete></td>
+		<td><input type="text" ng-model="weight"  size="5" placeholder="target weight" required></td>
+		<td><input class="btn-primary" type="submit" value="add"></td>
+	</tr>
+	</form>
+</table>
+<button ng-click="save()" ng-disabled="isNotComplete()" class="btn btn-primary">Save</button>
+</div>
