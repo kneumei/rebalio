@@ -2,25 +2,17 @@ var rebalio = angular.module('Rebalio', []).
   config(function($routeProvider) {
     $routeProvider.
       when('/', {controller:ModelPortfolioCtrl, templateUrl:'createmodel.html'}).
-      when('/createportfolio', {controller:ModelPortfolioCtrl, templateUrl:'createportfolio.html'}).
       otherwise({redirectTo:'/'});
   });
 
  rebalio.service('dataService', function(){
  	var modelPortfolio = [];
- 	var portfolio = []
  	return{
  		getModelPortfolio: function(){
  			return modelPortfolio;
  		},
  		setModelPortfolio: function(mpf){
  			modelPortfolio = mpf;
- 		},
- 		getPortfolio: function(){
- 			return portfolio;
- 		},
- 		setPortfolio: function(pf){
- 			portfolio = pf;
  		}
  	}; 
  })
@@ -68,18 +60,81 @@ var YAHOO={Finance:{SymbolSuggest:{}}};
  	}
  });
 
+function getMarketPrice( $http, tickers, callback){
+  var url = "http://query.yahooapis.com/v1/public/yql";
+  var cvsUrl = "http://download.finance.yahoo.com/d/quotes.csv?s="+tickers.join()+"&f=sp&e=.csv";
+  var config={
+    params : {
+      format:"json",
+      callback:"JSON_CALLBACK",
+      q:"select symbol, price from csv where url='"+cvsUrl+"' and columns='symbol,price'"
+    }
+  };
+
+
+  var retVal = [];
+  window._.each(tickers, function(t){
+    retVal.push({ticker:t, marketPrice:null});
+  })
+
+  $http.jsonp(url, config).success(function(data){
+    var rows = []
+    if(data.query.count ==1){
+      rows.push(data.query.results.row);
+    }else{
+      rows = data.query.results.row;
+    }
+
+
+    window._.each(rows, function(row){
+      var item = window._.findWhere(retVal, {ticker:row.symbol});
+      if(item!=null){
+        item.marketPrice = row.price;
+      }
+    });
+    callback(retVal);
+  }).error(function(data, status, header){
+    callback(retVal);
+  })
+}
+
 function ModelPortfolioCtrl ($scope, $location, dataService, $http){
 	$scope.modelPortfolio = dataService.getModelPortfolio();
 	
 
 	$scope.addSecurity = function() {
+    getMarketPrice($http, [$scope.ticker], function(priceMap){
     	$scope.modelPortfolio.push(
     		{
     			ticker:$scope.ticker
-    			, weight:Number(parseFloat($scope.weight).toFixed(2))
+    			, modelWeight:Number(parseFloat($scope.weight).toFixed(2))
+          , shareQuantity: Number(parseInt($scope.shareQuantity))
+          , marketPrice: 0
+          , marketValue: 0
+          , marketWeight: 0
     		});
+      var index = $scope.modelPortfolio.length - 1;
+      
+      //watch expression to calculate the market value
+      $scope.$watch('modelPortfolio['+index+']', function(newVal, oldVal, scope){
+        newVal.marketValue = newVal.shareQuantity*newVal.marketPrice;
+      }, true)
+
+      //watch expression to calculate the market weight
+      $scope.$watch('modelPortfolio', function(newVal, oldVal, scope){
+        var totalMarketValue = window._.reduce(newVal, function(accum, security){
+          return accum + security.marketValue;
+        },0);
+
+        window._.each(newVal, function(security){
+          security.marketWeight = (security.marketValue / totalMarketValue).toFixed(2);
+        });
+      }, true)
+
+      $scope.modelPortfolio[index].marketPrice = priceMap[0].marketPrice
     	dataService.setModelPortfolio ($scope.modelPortfolio);
-  	};
+  	})
+    };
 
   	$scope.deleteSecurity = function(index){
   		$scope.modelPortfolio.splice(index,1);
@@ -89,92 +144,9 @@ function ModelPortfolioCtrl ($scope, $location, dataService, $http){
   	$scope.totalWeight = function(){
   		var sum =  window._.reduce($scope.modelPortfolio, 
   			function(accum, security){
-  				return accum + security.weight;
+  				return accum + security.modelWeight;
   			}, 
   			0);
   		return Number(sum.toFixed(2) );
   	}
-
-  	$scope.isNotComplete = function(){
-  		var sum =  window._.reduce($scope.modelPortfolio, 
-  			function(accum, security){
-  				return accum + security.weight;
-  			}, 
-  			0);
-  		var w =  Number(sum.toFixed(2) );
-  		return !moneycomp(w, "==", 100, 2);
-  	}
-
-  	$scope.save = function(){
-  		var  pf = [];
-  		window._.each($scope.modelPortfolio, function(mpf){
-  			pf.push({
-  				ticker : mpf.ticker,
-  				shareQuantity : 0,
-  				marketPrice : 0,
-  				marketValue : 0,
-  				modelWeight : mpf.weight,
-  				marketWeight : 0  				
-  			});
-
-
-  		});
-
-  		var url = "http://query.yahooapis.com/v1/public/yql";
-      var cvsUrl = "http://download.finance.yahoo.com/d/quotes.csv?s="+window._.pluck(pf, 'ticker').join()+"&f=sp&e=.csv";
-  		var config={
-  				params : {
-  					format:"json",
-  					callback:"JSON_CALLBACK",
-  					q:"select symbol, price from csv where url='"+cvsUrl+"' and columns='symbol,price'"
-  				}
-  		};
-
-  		$http.jsonp(url, config).success(function(data){
-        var rows = []
-        if(data.query.count ==1){
-          rows.push(data.query.results.row);
-        }else{
-          rows = data.query.results.row;
-        }
-        window._.each(rows, function(row){
-          var item = window._.findWhere(pf, {ticker:row.symbol});
-          if(item!=null){
-            item.marketPrice = row.price;
-          }
-        });
-        dataService.setPortfolio(pf);
-  			$location.path('/createportfolio');	
-  		}).error(function(data, status, header){
-  			$location.path('/createportfolio');
-  		})
-
-  		
-  	}
-
-  	function moneycomp(a,comp,b,decimals) {
-	if (!decimals)
-		decimals = 2;
-	var multiplier = Math.pow(10,decimals);
-	a = Math.round(a * multiplier); // multiply to do integer comparison instead of floating point
-	b = Math.round(b * multiplier);
-	switch (comp) {
-		case ">":
-			return (a > b);
-		case ">=":
-			return (a >= b);
-		case "<":
-			return (a < b);
-		case "<=":
-			return (a <= b);
-		case "==":
-			return (a == b);
-	}
-	
-	return null;
-	}
-}
-
-function CreatePortfolioCtrl ($scope, $location, dataService){
-	$scope.portfolio = dataService.getPortfolio();
 }
