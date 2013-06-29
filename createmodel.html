@@ -1,5 +1,5 @@
 <div id = "ModelPortfolioDiv" ng-controller="ModelPortfolioCtrl">
-<table >
+<table border = "1">
 	<tr>
 		<td>Ticker</td>
         <td>Model Weight</td>
@@ -10,17 +10,49 @@
         <td></td>
 	</tr>
 	<tr ng-repeat="security in modelPortfolio">
+        <form ng-submit = "editSecurity()"/>
 		<td>{{security.ticker}}</td>
-        <td>{{security.modelWeight}}</td>
-        <td>{{security.shareQuantity}}</td>
-        <td>{{security.marketPrice}}</td>
-        <td>{{security.marketValue}}</td>
-        <td>{{security.marketWeight}}</td>
-        <td><button ng-click="deleteSecurity($index)">Delete</button></td>
+        <td >
+            <span ng-hide="editEnabled">
+                {{security.modelWeight}} %
+            </span>
+            <span ng-show="editEnabled"> 
+                <input type="text" size="10" ng-model="security.modelWeight" />
+            </span>
+        </td>
+        <td>
+            <span ng-hide="editEnabled">
+                {{security.shareQuantity}}
+            </span>
+            <span ng-show="editEnabled"> 
+                <input type="text" size="10" ng-model="security.shareQuantity" />
+            </span>
+        </td>
+        <td>
+
+            <span ng-hide="editEnabled">
+                 {{security.marketPrice | currency}}
+            </span>
+            <span ng-show="editEnabled"> 
+                <input type="text" size="10" ng-model="security.marketPrice" />
+            </span>
+
+           </td>
+        <td>{{security.marketValue | currency}}</td>
+        <td>{{security.marketWeight}} % </td>
+        <td><button ng-click="deleteSecurity($index)">Delete</button>
+            <span ng-hide = "editEnabled">
+                <button ng-click="editEnabled=!editEnabled">Edit</button>
+            </span>
+            <span ng-show = "editEnabled">
+                <button ng-click="editEnabled=!editEnabled">Save</button>
+            </span>
+        </td>
+        </form>
 	</tr>
     <tr>
         <td></td>
-        <td>{{totalWeight()}}</td>
+        <td>{{totalWeight}} % </td>
         <td></td>
         <td></td>
         <td></td>
@@ -29,9 +61,9 @@
     </tr>
 	<form ng-submit="addSecurity()"/>
 	<tr>
-		<td><input id = "txtTicker" type="text" ng-model="ticker"  size="8" placeholder="ticker" required autocomplete></input></td>
-		<td><input type="text" ng-model="weight"  size="5" placeholder="target weight" required></input></td>
-        <td><input type="text" ng-model="shareQuantity"  size="5" placeholder="target weight" value="0"></input></td>
+		<td><input id = "txtTicker" type="text" ng-model="ticker"  size="10" placeholder="ticker" required autocomplete></input></td>
+		<td><input type="text" ng-model="weight"  size="10" placeholder="target weight" required></input></td>
+        <td><input type="text" ng-model="shareQuantity"  size="10" placeholder="shares" value="0"></input></td>
         <td></td>
         <td></td>
         <td></td>

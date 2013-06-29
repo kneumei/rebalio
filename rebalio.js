@@ -7,13 +7,17 @@ var rebalio = angular.module('Rebalio', []).
 
  rebalio.service('dataService', function(){
  	var modelPortfolio = [];
+  var totalWeight = 0;
  	return{
  		getModelPortfolio: function(){
  			return modelPortfolio;
  		},
  		setModelPortfolio: function(mpf){
  			modelPortfolio = mpf;
- 		}
+ 		},
+    getTotalWeight: function(){
+      return totalWeight;
+    }
  	}; 
  })
 
@@ -100,6 +104,7 @@ function getMarketPrice( $http, tickers, callback){
 
 function ModelPortfolioCtrl ($scope, $location, dataService, $http){
 	$scope.modelPortfolio = dataService.getModelPortfolio();
+  $scope.totalWeight = dataService.getTotalWeight();
 	
 
 	$scope.addSecurity = function() {
@@ -127,8 +132,14 @@ function ModelPortfolioCtrl ($scope, $location, dataService, $http){
         },0);
 
         window._.each(newVal, function(security){
-          security.marketWeight = (security.marketValue / totalMarketValue).toFixed(2);
+          security.marketWeight = (security.marketValue / totalMarketValue).toFixed(2) * 100;
         });
+
+        scope.totalWeight = 0;
+
+        scope.totalWeight = window._.reduce($scope.modelPortfolio, function(accum, security){
+          return Number(accum) + Number(security.modelWeight);
+        }, 0);
       }, true)
 
       $scope.modelPortfolio[index].marketPrice = priceMap[0].marketPrice
@@ -141,12 +152,4 @@ function ModelPortfolioCtrl ($scope, $location, dataService, $http){
   		dataService.setModelPortfolio ($scope.modelPortfolio);
   	}
 
-  	$scope.totalWeight = function(){
-  		var sum =  window._.reduce($scope.modelPortfolio, 
-  			function(accum, security){
-  				return accum + security.modelWeight;
-  			}, 
-  			0);
-  		return Number(sum.toFixed(2) );
-  	}
 }
