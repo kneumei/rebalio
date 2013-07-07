@@ -1,4 +1,5 @@
 <div id = "ModelPortfolioDiv" ng-controller="ModelPortfolioCtrl">
+<h3>Step 1: Enter Portfolio Model</h3>
 <table border = "1">
 	<tr>
 		<td>Ticker</td>
@@ -52,7 +53,7 @@
 	</tr>
     <tr>
         <td></td>
-        <td>{{totalWeight}} % </td>
+        <td>{{data.totalWeight}} % </td>
         <td></td>
         <td></td>
         <td></td>
@@ -67,8 +68,18 @@
         <td></td>
         <td></td>
         <td></td>
-		<td><input class="btn-primary" type="submit" value="add"></td>
+		<td><input class="btn-primary" type="submit" value="add"/></td>
 	</tr>
 	</form>
 </table>
-</div>
+
+<h3>Step 2: Enter Cash</h3>
+ <table>
+    <form name="cashForm"/>
+    <tr>
+        <td><input type = "text" ng-model="cash" /></td>
+        <td><button  ng-disabled="totalWeight=0">Rebalance</button></td>
+    </tr>
+    </form> 
+</table>
+ </div>
